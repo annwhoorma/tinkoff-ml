@@ -3,14 +3,16 @@ from random import randint
 from time import sleep
 
 
-TO_FILL = 1
+TO_FILL = 40
 
 FILENAME = 'game.pkl'
 
 SIZE = 9
 SQUARE = 3
-EMPTY_LINE = [0] * SIZE
-EMPTY_BOARD = [EMPTY_LINE for i in range(SIZE)]
+
+EMPTY_BOARD = [0] * SIZE
+for i in range(SIZE):
+    EMPTY_BOARD[i] = [0] * SIZE
 
 
 def is_line_valid(line):
@@ -71,13 +73,15 @@ class Board99:
         return [self.numbers[i][j]
                 for i in range(x1, x2 + 1) for j in range(y1, y2+1)]
 
-    def update_cell(self, row, column, new_number):
+    def update_cell(self, row, column, new_number, validity_check=True):
         old_numbers = self.numbers
+        self.to_string()
         self.numbers[row][column] = new_number
-        if self.is_cell_valid(row, column):
-            return True
-        self.numbers = old_numbers
-        return False
+        if validity_check:
+            if self.is_cell_valid(row, column):
+                return True
+            self.numbers = old_numbers
+            return False
 
     def get_cell(self, row, column):
         return self.numbers[row][column]
@@ -115,6 +119,7 @@ class Session:
         # to_fill = input('hey :)\njust give me the number of cells to fill: ')
         to_fill = TO_FILL
         self.generate_board(to_fill)
+        self.board.to_string()
 
     def export_from_pkl(self):
         if self.board.pickled == False:
@@ -135,16 +140,15 @@ class Session:
         while to_fill > 0:
             row, column = randint(0, SIZE-1), randint(0, SIZE-1)
             if self.board.get_cell(row, column) != 0:
-                sleep(10)
+                continue
             else:
                 to_fill -= 1
                 possible_values = self.board.find_possible_cell_answers(row, column)
                 if possible_values == 0:
                     return -1
                 else:
-                    self.board.update_cell(row, column, possible_values[randint(0, len(possible_values)-1)])
+                    self.board.update_cell(row, column, possible_values[randint(0, len(possible_values)-1)], validity_check=False)
         print('the board has been generated :)')
-        self.board.to_string()
 
 session = Session()
 session.start_session()
