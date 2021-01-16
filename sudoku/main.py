@@ -10,6 +10,8 @@ FILENAME = 'game.pkl'
 SIZE = 9
 SQUARE = 3
 
+STOPWORD = 'pause'
+
 EMPTY_BOARD = [0] * SIZE
 for i in range(SIZE):
     EMPTY_BOARD[i] = [0] * SIZE
@@ -51,6 +53,16 @@ def determine_square(r, c):
         return -1
 
 
+def throw_error(text):
+    print(f'ERROR: {text}')
+
+
+def check_input_boundaries(row, column, number):
+    if 0 <= row and row < SIZE and 0 <= column and column < SIZE and 0 < number and number <= SIZE:
+        return True
+    return False
+
+
 class Board99:
     def __init__(self, numbers):
         self.numbers = numbers
@@ -63,7 +75,8 @@ class Board99:
         return full_row, full_column, full_square
 
     def is_cell_valid(self, row, column):
-        full_row, full_column, full_square = self.get_row_column_square(row, column)
+        full_row, full_column, full_square = self.get_row_column_square(
+            row, column)
         if is_line_valid(full_row) and is_line_valid(full_column) and is_line_valid(full_square):
             return True
         return False
@@ -74,13 +87,12 @@ class Board99:
                 for i in range(x1, x2 + 1) for j in range(y1, y2+1)]
 
     def update_cell(self, row, column, new_number, validity_check=True):
-        old_numbers = self.numbers
-        self.to_string()
+        old_number = self.numbers[row][column]
         self.numbers[row][column] = new_number
         if validity_check:
             if self.is_cell_valid(row, column):
                 return True
-            self.numbers = old_numbers
+            self.numbers[row][column] = old_number
             return False
 
     def get_cell(self, row, column):
@@ -90,13 +102,13 @@ class Board99:
         cur_value = self.get_cell(row, column)
         if cur_value != 0:
             return cur_value
-        full_row, full_column, full_square = self.get_row_column_square(row, column)
+        full_row, full_column, full_square = self.get_row_column_square(
+            row, column)
         possible_values = []
         for num in range(1, SIZE+1):
             if num not in full_row and num not in full_column and num not in full_square:
                 possible_values.append(num)
         return possible_values if len(possible_values) > 0 else 0
-
 
     def to_string(self):
         print()
@@ -107,29 +119,33 @@ class Board99:
             print(f'|{line}')
         print()
 
-    def set_pickled(self, state):
-        self.pickled = state
-
 
 class Session:
     def __init__(self, numbers=EMPTY_BOARD):
         self.board = Board99(numbers)
 
     def start_session(self):
-        # to_fill = input('hey :)\njust give me the number of cells to fill: ')
-        to_fill = TO_FILL
+        to_fill = int(input('just give me the number of cells to fill: '))
+        # to_fill = TO_FILL
         self.generate_board(to_fill)
         self.board.to_string()
 
-    def export_from_pkl(self):
-        if self.board.pickled == False:
+    def make_move(self, row, column, number):
+        if not self.board.update_cell(row, column, number, validity_check=True):
+            throw_error('not a valid number for this cell; the board didnt change: ')
+
+    def import_from_pkl(self):
+        try:
+            with open(FILENAME, 'rb') as f:
+                self.board = load(f)
+        except FileNotFoundError:
+            print('shit2')
             return -1
+
         with open(FILENAME, 'rb') as f:
             self.board = load(f)
-        self.board.set_pickled(False)
 
-    def import_to_pkl(self):
-        self.board.set_pickled(True)
+    def export_to_pkl(self):
         with open(FILENAME, 'wb') as f:
             dump(self.board, f)
 
@@ -143,12 +159,48 @@ class Session:
                 continue
             else:
                 to_fill -= 1
-                possible_values = self.board.find_possible_cell_answers(row, column)
+                possible_values = self.board.find_possible_cell_answers(
+                    row, column)
                 if possible_values == 0:
                     return -1
                 else:
-                    self.board.update_cell(row, column, possible_values[randint(0, len(possible_values)-1)], validity_check=False)
+                    self.board.update_cell(row, column, possible_values[randint(
+                        0, len(possible_values)-1)], validity_check=False)
         print('the board has been generated :)')
 
-session = Session()
-session.start_session()
+
+def main():
+    session = Session()
+    print("""for each move, type: <row> <column> <number>. each of them is a number between 1 and 9 \nif you want to take a break, type 'pause' and the game will stop until you decide to resume it later""")
+
+    answer = input("\noh wait, do you have a game to resume? [y/n] ")
+    if answer == 'y':
+        if session.import_from_pkl() == -1:
+            print('nope, you have no game to resume, you may start a new one')
+
+        print('cool, you may continue :) just to remind you where you were: ')
+        session.board.to_string()
+    elif answer == 'n':
+        print('okay, starting a new one')
+        session.start_session()
+        session.generate_board()
+    else:
+        throw_error('wrong answer, come back later')
+        return
+
+    print('now, start typing in your moves')
+    while(True):
+        inp = input("your move: ")
+        if inp == STOPWORD:
+            session.export_to_pkl()
+            print('yup, saved it :) resume the game whenever you want')
+            break
+        row, column, number = inp.split(' ')
+        row, column, number = int(row), int(column), int(number)
+        row, column = row - 1, column - 1
+        if check_input_boundaries(row, column, number):
+            session.make_move(row, column, number)
+            session.board.to_string()
+
+
+main()
