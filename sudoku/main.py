@@ -1,6 +1,9 @@
 from pickle import load, dump
 from random import randint
+from time import sleep
 
+
+TO_FILL = 1
 
 FILENAME = 'game.pkl'
 
@@ -57,7 +60,7 @@ class Board99:
         full_square = self.get_square33(row, column)
         return full_row, full_column, full_square
 
-    def is_sell_valid(self, row, column):
+    def is_cell_valid(self, row, column):
         full_row, full_column, full_square = self.get_row_column_square(row, column)
         if is_line_valid(full_row) and is_line_valid(full_column) and is_line_valid(full_square):
             return True
@@ -68,19 +71,19 @@ class Board99:
         return [self.numbers[i][j]
                 for i in range(x1, x2 + 1) for j in range(y1, y2+1)]
 
-    def update_sell(self, row, column, new_number):
+    def update_cell(self, row, column, new_number):
         old_numbers = self.numbers
         self.numbers[row][column] = new_number
-        if self.is_sell_valid(row, column):
+        if self.is_cell_valid(row, column):
             return True
         self.numbers = old_numbers
         return False
 
-    def get_sell(self, row, column):
+    def get_cell(self, row, column):
         return self.numbers[row][column]
 
-    def find_possible_sell_answers(self, row, column):
-        cur_value = self.get_sell(row, column)
+    def find_possible_cell_answers(self, row, column):
+        cur_value = self.get_cell(row, column)
         if cur_value != 0:
             return cur_value
         full_row, full_column, full_square = self.get_row_column_square(row, column)
@@ -91,7 +94,7 @@ class Board99:
         return possible_values if len(possible_values) > 0 else 0
 
 
-    def toString(self):
+    def to_string(self):
         print()
         for i in range(SIZE):
             line = ''
@@ -108,6 +111,11 @@ class Session:
     def __init__(self, numbers=EMPTY_BOARD):
         self.board = Board99(numbers)
 
+    def start_session(self):
+        # to_fill = input('hey :)\njust give me the number of cells to fill: ')
+        to_fill = TO_FILL
+        self.generate_board(to_fill)
+
     def export_from_pkl(self):
         if self.board.pickled == False:
             return -1
@@ -120,22 +128,23 @@ class Session:
         with open(FILENAME, 'wb') as f:
             dump(self.board, f)
 
-    def update_sell(self, row, column, number):
-        pass
-
     def generate_board(self, to_fill=0):
         if to_fill == 0:
             return
 
         while to_fill > 0:
-            row, column = randint(0, SIZE-1)
-            if self.board.get_sell(row, column) != 0:
-                to_fill += 1
+            row, column = randint(0, SIZE-1), randint(0, SIZE-1)
+            if self.board.get_cell(row, column) != 0:
+                sleep(10)
             else:
                 to_fill -= 1
-                possible_values = self.board.find_possible_sell_answers(row, column)
+                possible_values = self.board.find_possible_cell_answers(row, column)
                 if possible_values == 0:
                     return -1
                 else:
-                    self.board.update_sell(possible_values[randint(0, len(possible_values)-1)])
-    
+                    self.board.update_cell(row, column, possible_values[randint(0, len(possible_values)-1)])
+        print('the board has been generated :)')
+        self.board.to_string()
+
+session = Session()
+session.start_session()
